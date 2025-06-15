@@ -1,10 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.security.SecureRandom;
 
-public class PasswordGenerator extends JFrame {
+public class passwordGenerator extends JFrame {
     private JCheckBox upperCaseCheckBox;
     private JCheckBox lowerCaseCheckBox;
     private JCheckBox numbersCheckBox;
@@ -12,9 +11,9 @@ public class PasswordGenerator extends JFrame {
     private JTextField lengthField;
     private JTextArea passwordArea;
 
-    public PasswordGenerator() {
+    public passwordGenerator() {
         setTitle("Password Generator");
-        setSize(400, 300);
+        setSize(400, 320);
         setLayout(new FlowLayout());
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -33,71 +32,87 @@ public class PasswordGenerator extends JFrame {
         add(specialCharsCheckBox);
 
         JButton generateButton = new JButton("Generate Password");
-        generateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                generatePassword();
-            }
-        });
+        generateButton.addActionListener(this::generatePassword);
         add(generateButton);
 
-        passwordArea = new JTextArea(5, 20);
+        passwordArea = new JTextArea(5, 30);
         passwordArea.setEditable(false);
         add(new JScrollPane(passwordArea));
 
         setVisible(true);
     }
 
-    private void generatePassword() {
-        int length = Integer.parseInt(lengthField.getText());
-        boolean includeUpperCase = upperCaseCheckBox.isSelected();
-        boolean includeLowerCase = lowerCaseCheckBox.isSelected();
-        boolean includeNumbers = numbersCheckBox.isSelected();
-        boolean includeSpecialChars = specialCharsCheckBox.isSelected();
+    private void generatePassword(ActionEvent e) {
+        String lengthText = lengthField.getText().trim();
+        int length;
 
-        String password = PasswordGenerator1.generatePassword(length, includeUpperCase, includeLowerCase, includeNumbers, includeSpecialChars);
+        try {
+            length = Integer.parseInt(lengthText);
+            if (length <= 2) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid positive number for password length.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        boolean includeUpper = upperCaseCheckBox.isSelected();
+        boolean includeLower = lowerCaseCheckBox.isSelected();
+        boolean includeNumbers = numbersCheckBox.isSelected();
+        boolean includeSpecial = specialCharsCheckBox.isSelected();
+
+        if (!includeUpper && !includeLower && !includeNumbers && !includeSpecial) {
+            JOptionPane.showMessageDialog(this, "Please select at least one character type.", "Input Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String password = PasswordGeneratorLogic.generatePassword(length, includeUpper, includeLower, includeNumbers, includeSpecial);
         passwordArea.setText(password);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new PasswordGenerator();
-            }
-        });
+        SwingUtilities.invokeLater(passwordGenerator::new);
     }
 }
 
-class PasswordGenerator1 {
-    public static String generatePassword(int length, boolean includeUpperCase, boolean includeLowerCase, boolean includeNumbers, boolean includeSpecialChars) {
-        String uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
-        String numberChars = "0123456789";
-        String specialChars = "!@#$%^&*()-_+=<>?";
+class PasswordGeneratorLogic {
+    private static final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+    private static final String NUMBERS = "0123456789";
+    private static final String SPECIAL = "!@#$%^&*()-_+=<>?";
+
+    public static String generatePassword(int length, boolean upper, boolean lower, boolean numbers, boolean special) {
         StringBuilder validChars = new StringBuilder();
         SecureRandom random = new SecureRandom();
-
-        if (includeUpperCase) {
-            validChars.append(uppercaseChars);
-        }
-        if (includeLowerCase) {
-            validChars.append(lowercaseChars);
-        }
-        if (includeNumbers) {
-            validChars.append(numberChars);
-        }
-        if (includeSpecialChars) {
-            validChars.append(specialChars);
-        }
-
         StringBuilder password = new StringBuilder();
-        for (int i = 0; i < length; i++) {
+
+        if (upper) validChars.append(UPPERCASE);
+        if (lower) validChars.append(LOWERCASE);
+        if (numbers) validChars.append(NUMBERS);
+        if (special) validChars.append(SPECIAL);
+
+        // Ensure at least one of each selected type is included
+        if (upper) password.append(UPPERCASE.charAt(random.nextInt(UPPERCASE.length())));
+        if (lower) password.append(LOWERCASE.charAt(random.nextInt(LOWERCASE.length())));
+        if (numbers) password.append(NUMBERS.charAt(random.nextInt(NUMBERS.length())));
+        if (special) password.append(SPECIAL.charAt(random.nextInt(SPECIAL.length())));
+
+        // Fill the rest of the password length
+        for (int i = password.length(); i < length; i++) {
             int index = random.nextInt(validChars.length());
             password.append(validChars.charAt(index));
         }
 
-        return password.toString();
+        // Shuffle password to randomize character positions
+        return shuffleString(password.toString(), random);
+    }
+
+    private static String shuffleString(String input, SecureRandom random) {
+        char[] chars = input.toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char tmp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = tmp;
+        }
+        return new String(chars);
     }
 }
-
