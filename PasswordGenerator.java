@@ -1,9 +1,7 @@
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.security.SecureRandom;
 
-public class passwordGenerator extends JFrame {
+public class PasswordGenerator extends JFrame {
     private JCheckBox upperCaseCheckBox;
     private JCheckBox lowerCaseCheckBox;
     private JCheckBox numbersCheckBox;
@@ -11,14 +9,15 @@ public class passwordGenerator extends JFrame {
     private JTextField lengthField;
     private JTextArea passwordArea;
 
-    public passwordGenerator() {
+    public PasswordGenerator() {
         setTitle("Password Generator");
         setSize(400, 320);
-        setLayout(new FlowLayout());
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
         add(new JLabel("Password Length:"));
         lengthField = new JTextField(10);
+        lengthField.setMaximumSize(lengthField.getPreferredSize());
         add(lengthField);
 
         upperCaseCheckBox = new JCheckBox("Include Uppercase Letters");
@@ -32,7 +31,7 @@ public class passwordGenerator extends JFrame {
         add(specialCharsCheckBox);
 
         JButton generateButton = new JButton("Generate Password");
-        generateButton.addActionListener(this::generatePassword);
+        generateButton.addActionListener(e -> generatePassword());
         add(generateButton);
 
         passwordArea = new JTextArea(5, 30);
@@ -42,10 +41,9 @@ public class passwordGenerator extends JFrame {
         setVisible(true);
     }
 
-    private void generatePassword(ActionEvent e) {
+    private void generatePassword() {
         String lengthText = lengthField.getText().trim();
         int length;
-
         try {
             length = Integer.parseInt(lengthText);
             if (length <= 2) throw new NumberFormatException();
@@ -69,7 +67,7 @@ public class passwordGenerator extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(passwordGenerator::new);
+        SwingUtilities.invokeLater(PasswordGenerator::new);
     }
 }
 
@@ -89,19 +87,19 @@ class PasswordGeneratorLogic {
         if (numbers) validChars.append(NUMBERS);
         if (special) validChars.append(SPECIAL);
 
-        // Ensure at least one of each selected type is included
+        // Add at least one of each selected type
         if (upper) password.append(UPPERCASE.charAt(random.nextInt(UPPERCASE.length())));
         if (lower) password.append(LOWERCASE.charAt(random.nextInt(LOWERCASE.length())));
         if (numbers) password.append(NUMBERS.charAt(random.nextInt(NUMBERS.length())));
         if (special) password.append(SPECIAL.charAt(random.nextInt(SPECIAL.length())));
 
-        // Fill the rest of the password length
+        // Fill the rest
         for (int i = password.length(); i < length; i++) {
             int index = random.nextInt(validChars.length());
             password.append(validChars.charAt(index));
         }
 
-        // Shuffle password to randomize character positions
+        // Shuffle the final password
         return shuffleString(password.toString(), random);
     }
 
