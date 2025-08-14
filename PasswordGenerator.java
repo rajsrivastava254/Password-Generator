@@ -1,5 +1,8 @@
-import javax.swing.*;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.security.SecureRandom;
+import javax.swing.*;
 
 public class PasswordGenerator extends JFrame {
     private JCheckBox upperCaseCheckBox;
@@ -8,14 +11,15 @@ public class PasswordGenerator extends JFrame {
     private JCheckBox specialCharsCheckBox;
     private JTextField lengthField;
     private JTextArea passwordArea;
+    private JButton copyButton;
 
     public PasswordGenerator() {
         setTitle("Password Generator");
-        setSize(400, 320);
+        setSize(400, 350);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
-        add(new JLabel("Password Length:"));
+        add(new JLabel("Password Length (4-64):"));
         lengthField = new JTextField(10);
         lengthField.setMaximumSize(lengthField.getPreferredSize());
         add(lengthField);
@@ -34,6 +38,11 @@ public class PasswordGenerator extends JFrame {
         generateButton.addActionListener(e -> generatePassword());
         add(generateButton);
 
+        copyButton = new JButton("Copy Password");
+        copyButton.setEnabled(false);
+        copyButton.addActionListener(e -> copyPasswordToClipboard());
+        add(copyButton);
+
         passwordArea = new JTextArea(5, 30);
         passwordArea.setEditable(false);
         add(new JScrollPane(passwordArea));
@@ -46,9 +55,11 @@ public class PasswordGenerator extends JFrame {
         int length;
         try {
             length = Integer.parseInt(lengthText);
-            if (length <= 2) throw new NumberFormatException();
+            if (length < 4 || length > 64) throw new NumberFormatException();
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid positive number for password length.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please enter a valid password length (4-64).", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            copyButton.setEnabled(false);
+            passwordArea.setText("");
             return;
         }
 
@@ -59,11 +70,24 @@ public class PasswordGenerator extends JFrame {
 
         if (!includeUpper && !includeLower && !includeNumbers && !includeSpecial) {
             JOptionPane.showMessageDialog(this, "Please select at least one character type.", "Input Required", JOptionPane.WARNING_MESSAGE);
+            copyButton.setEnabled(false);
+            passwordArea.setText("");
             return;
         }
 
         String password = PasswordGeneratorLogic.generatePassword(length, includeUpper, includeLower, includeNumbers, includeSpecial);
         passwordArea.setText(password);
+        copyButton.setEnabled(true);
+    }
+
+    private void copyPasswordToClipboard() {
+        String password = passwordArea.getText();
+        if (!password.isEmpty()) {
+            StringSelection selection = new StringSelection(password);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(selection, selection);
+            JOptionPane.showMessageDialog(this, "Password copied to clipboard!", "Copied", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {
@@ -87,19 +111,16 @@ class PasswordGeneratorLogic {
         if (numbers) validChars.append(NUMBERS);
         if (special) validChars.append(SPECIAL);
 
-        // Add at least one of each selected type
         if (upper) password.append(UPPERCASE.charAt(random.nextInt(UPPERCASE.length())));
         if (lower) password.append(LOWERCASE.charAt(random.nextInt(LOWERCASE.length())));
         if (numbers) password.append(NUMBERS.charAt(random.nextInt(NUMBERS.length())));
         if (special) password.append(SPECIAL.charAt(random.nextInt(SPECIAL.length())));
 
-        // Fill the rest
         for (int i = password.length(); i < length; i++) {
             int index = random.nextInt(validChars.length());
             password.append(validChars.charAt(index));
         }
 
-        // Shuffle the final password
         return shuffleString(password.toString(), random);
     }
 
